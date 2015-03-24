@@ -5,7 +5,7 @@ close all
 %% Read the file
 % Read input image, which is an image of an spectrogram.
 
-he = imread('Spec04.png');
+he = imread('Spec01.png');
 imshow(he), title('SEI ETMX Spectrogram');
 text(size(he,2),size(he,1)+15,...
      'Image courtesy of LIGO Summary Pages', ...
@@ -14,8 +14,19 @@ text(size(he,2),size(he,1)+15,...
 %% Select Red Part
 red_part = select_red(he);
 
-%% Select Big Areas
-bigArea = select_big_areas(red_part,200);
+figure
+imshow(red_part), title('Red Noisy Parts of Spectrogram');
 
-% figure
-% imshow(red_part), title('Red Noisy Regions of Spectrogram');
+%% Select Big Areas
+lowArea = select_big_areas(red_part);
+
+figure
+imshow(red_part);
+title('Objects Having Standard Deviation < 50');
+hold on;
+
+for k = 1 : length(lowArea)
+    rectangle('Position', s(lowArea(k)).BoundingBox, ...
+        'EdgeColor','y');
+end
+hold off;
