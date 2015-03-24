@@ -1,0 +1,202 @@
+
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html><head>
+      <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <!--
+This HTML was auto-generated from MATLAB code.
+To make changes, update the MATLAB code and republish this document.
+      --><title>Color section extraction of an spectrogram</title><meta name="generator" content="MATLAB 8.0"><link rel="schema.DC" href="http://purl.org/dc/elements/1.1/"><meta name="DC.date" content="2015-03-24"><meta name="DC.source" content="SelectColor.m"><style type="text/css">
+html,body,div,span,applet,object,iframe,h1,h2,h3,h4,h5,h6,p,blockquote,pre,a,abbr,acronym,address,big,cite,code,del,dfn,em,font,img,ins,kbd,q,s,samp,small,strike,strong,sub,sup,tt,var,b,u,i,center,dl,dt,dd,ol,ul,li,fieldset,form,label,legend,table,caption,tbody,tfoot,thead,tr,th,td{margin:0;padding:0;border:0;outline:0;font-size:100%;vertical-align:baseline;background:transparent}body{line-height:1}ol,ul{list-style:none}blockquote,q{quotes:none}blockquote:before,blockquote:after,q:before,q:after{content:'';content:none}:focus{outine:0}ins{text-decoration:none}del{text-decoration:line-through}table{border-collapse:collapse;border-spacing:0}
+
+html { min-height:100%; margin-bottom:1px; }
+html body { height:100%; margin:0px; font-family:Arial, Helvetica, sans-serif; font-size:10px; color:#000; line-height:140%; background:#fff none; overflow-y:scroll; }
+html body td { vertical-align:top; text-align:left; }
+
+h1 { padding:0px; margin:0px 0px 25px; font-family:Arial, Helvetica, sans-serif; font-size:1.5em; color:#d55000; line-height:100%; font-weight:normal; }
+h2 { padding:0px; margin:0px 0px 8px; font-family:Arial, Helvetica, sans-serif; font-size:1.2em; color:#000; font-weight:bold; line-height:140%; border-bottom:1px solid #d6d4d4; display:block; }
+h3 { padding:0px; margin:0px 0px 5px; font-family:Arial, Helvetica, sans-serif; font-size:1.1em; color:#000; font-weight:bold; line-height:140%; }
+
+a { color:#005fce; text-decoration:none; }
+a:hover { color:#005fce; text-decoration:underline; }
+a:visited { color:#004aa0; text-decoration:none; }
+
+p { padding:0px; margin:0px 0px 20px; }
+img { padding:0px; margin:0px 0px 20px; border:none; }
+p img, pre img, tt img, li img { margin-bottom:0px; } 
+
+ul { padding:0px; margin:0px 0px 20px 23px; list-style:square; }
+ul li { padding:0px; margin:0px 0px 7px 0px; }
+ul li ul { padding:5px 0px 0px; margin:0px 0px 7px 23px; }
+ul li ol li { list-style:decimal; }
+ol { padding:0px; margin:0px 0px 20px 0px; list-style:decimal; }
+ol li { padding:0px; margin:0px 0px 7px 23px; list-style-type:decimal; }
+ol li ol { padding:5px 0px 0px; margin:0px 0px 7px 0px; }
+ol li ol li { list-style-type:lower-alpha; }
+ol li ul { padding-top:7px; }
+ol li ul li { list-style:square; }
+
+.content { font-size:1.2em; line-height:140%; padding: 20px; }
+
+pre, tt, code { font-size:12px; }
+pre { margin:0px 0px 20px; }
+pre.error { color:red; }
+pre.codeinput { padding:10px; border:1px solid #d3d3d3; background:#f7f7f7; }
+pre.codeoutput { padding:10px 11px; margin:0px 0px 20px; color:#4c4c4c; }
+
+@media print { pre.codeinput, pre.codeoutput { word-wrap:break-word; width:100%; } }
+
+span.keyword { color:#0000FF }
+span.comment { color:#228B22 }
+span.string { color:#A020F0 }
+span.untermstring { color:#B20000 }
+span.syscmd { color:#B28C00 }
+
+.footer { width:auto; padding:10px 0px; margin:25px 0px 0px; border-top:1px dotted #878787; font-size:0.8em; line-height:140%; font-style:italic; color:#878787; text-align:left; float:none; }
+.footer p { margin:0px; }
+.footer a { color:#878787; }
+.footer a:hover { color:#878787; text-decoration:underline; }
+.footer a:visited { color:#878787; }
+
+table th { padding:7px 5px; text-align:left; vertical-align:middle; border: 1px solid #d6d4d4; font-weight:bold; }
+table td { padding:7px 5px; text-align:left; vertical-align:top; border:1px solid #d6d4d4; }
+
+
+
+
+
+  </style></head><body><div class="content"><h1>Color section extraction of an spectrogram</h1><!--introduction--><p>This function segment colors in an automated fashion using the L*a*b* color space and K-means clustering and select the red part, which corresponds to amplitudes above the noise (median).</p><!--/introduction--><h2>Contents</h2><div><ul><li><a href="#1">Read the file</a></li><li><a href="#2">Convert Image from RGB Color Space to L*a*b* Color Space</a></li><li><a href="#3">Classify the Colors in 'a*b*' Space Using K-Means Clustering</a></li><li><a href="#4">Label Every Pixel in the Image Using the Results from KMEANS</a></li><li><a href="#5">Create Images that Segment the H&amp;E Image by Color.</a></li><li><a href="#6">Segment the High Amplitude Regions (red) into a Separate Image</a></li></ul></div><h2>Read the file<a name="1"></a></h2><p>Read in Spec01.png, which is an image of the SEI ETMX Spectrogram.</p><pre class="codeinput">clear
+close <span class="string">all</span>
+clc
+
+he = imread(<span class="string">'Spec01.png'</span>);
+imshow(he), title(<span class="string">'SEI ETMX Spectrogram'</span>);
+text(size(he,2),size(he,1)+15,<span class="keyword">...</span>
+     <span class="string">'Image courtesy of LIGO Summary Pages'</span>, <span class="keyword">...</span>
+     <span class="string">'FontSize'</span>,10,<span class="string">'HorizontalAlignment'</span>,<span class="string">'right'</span>);
+</pre><img vspace="5" hspace="5" src="SelectColor_01.png" alt=""> <h2>Convert Image from RGB Color Space to L*a*b* Color Space<a name="2"></a></h2><p>There are three main colors in the spectrogram: red, green, and red.</p><pre class="codeinput">cform = makecform(<span class="string">'srgb2lab'</span>);
+lab_he = applycform(he,cform);
+</pre><h2>Classify the Colors in 'a*b*' Space Using K-Means Clustering<a name="3"></a></h2><p>Use kmeans to cluster the object into three clusters using the Euclidean distance metric and repeating the clustering 3 times to avoid local minima.</p><pre class="codeinput">ab = double(lab_he(:,:,2:3));
+nrows = size(ab,1);
+ncols = size(ab,2);
+ab = reshape(ab,nrows*ncols,2);
+
+nColors = 3;
+[cluster_idx, cluster_center] = kmeans(ab,nColors,<span class="string">'distance'</span>,<span class="string">'sqEuclidean'</span>, <span class="keyword">...</span>
+                                      <span class="string">'Replicates'</span>,3);
+</pre><h2>Label Every Pixel in the Image Using the Results from KMEANS<a name="4"></a></h2><p>kmeans returns an index corresponding to a cluster. Label every pixel in the image with its cluster_index.</p><pre class="codeinput">pixel_labels = reshape(cluster_idx,nrows,ncols);
+figure
+imshow(pixel_labels,[]), title(<span class="string">'Image Labeled by Cluster Index'</span>);
+</pre><img vspace="5" hspace="5" src="SelectColor_02.png" alt=""> <h2>Create Images that Segment the H&amp;E Image by Color.<a name="5"></a></h2><p>Using pixel_labels, separate objects in input figure by color, which will result in three images.</p><pre class="codeinput">segmented_images = cell(1,3);
+rgb_label = repmat(pixel_labels,[1 1 3]);
+
+<span class="keyword">for</span> k = 1:nColors
+    color = he;
+    color(rgb_label ~= k) = 0;
+    segmented_images{k} = color;
+<span class="keyword">end</span>
+</pre><h2>Segment the High Amplitude Regions (red) into a Separate Image<a name="6"></a></h2><p>Separate dark red from light red using the 'L*' layer in the L*a*b* color space. The 'L*' layer contains the brightness values of each color. Find the cluster that contains the red objects. Extract the brightness values of the pixels in this cluster and threshold them using im2bw. Then, use the mask is_light_red to label which pixels belong to the red amplitudes. Finally, display red amplitudes in a separate image.</p><pre class="codeinput">mean_cluster_value = mean(cluster_center,2);
+[tmp, idx] = sort(mean_cluster_value);
+red_cluster_num = idx(3);
+
+L = lab_he(:,:,1);
+red_idx = find(pixel_labels == red_cluster_num);
+L_red = L(red_idx);
+is_light_red = im2bw(L_red,graythresh(L_red));
+
+
+noisy_labels = repmat(uint8(0),[nrows ncols]);
+noisy_labels(red_idx(is_light_red==false)) = 1;
+noisy_labels = repmat(noisy_labels,[1 1 3]);
+red_noisy = he;
+red_noisy(noisy_labels ~= 1) = 0;
+figure
+imshow(red_noisy), title(<span class="string">'Red Noisy Parts of Spectrogram'</span>);
+</pre><img vspace="5" hspace="5" src="SelectColor_03.png" alt=""> <p class="footer"><br><a href="http://www.mathworks.com/products/matlab/">Published with MATLAB&reg; R2012b</a><br></p></div><!--
+##### SOURCE BEGIN #####
+%% Color section extraction of an spectrogram
+% This function segment colors in an automated fashion using 
+% the L*a*b* color space and K-means clustering and select the red part,
+% which corresponds to amplitudes above the noise (median).
+
+%% Read the file
+% Read in Spec01.png, which is an image of the SEI ETMX Spectrogram.
+clear
+close all
+clc
+
+he = imread('Spec01.png');
+imshow(he), title('SEI ETMX Spectrogram');
+text(size(he,2),size(he,1)+15,...
+     'Image courtesy of LIGO Summary Pages', ...
+     'FontSize',10,'HorizontalAlignment','right');
+ 
+
+%% Convert Image from RGB Color Space to L*a*b* Color Space
+% There are three main colors in the spectrogram: red, green, and red.
+
+cform = makecform('srgb2lab');
+lab_he = applycform(he,cform);
+ 
+%% Classify the Colors in 'a*b*' Space Using K-Means Clustering 
+% Use kmeans to cluster the object into three clusters using the Euclidean
+% distance metric and repeating the clustering 3 times to avoid local 
+% minima.
+
+ab = double(lab_he(:,:,2:3));
+nrows = size(ab,1);
+ncols = size(ab,2);
+ab = reshape(ab,nrows*ncols,2);
+
+nColors = 3;
+[cluster_idx, cluster_center] = kmeans(ab,nColors,'distance','sqEuclidean', ...
+                                      'Replicates',3);
+
+%% Label Every Pixel in the Image Using the Results from KMEANS
+% kmeans returns an index corresponding to a cluster. Label every pixel in 
+% the image with its cluster_index.
+
+pixel_labels = reshape(cluster_idx,nrows,ncols);
+figure
+imshow(pixel_labels,[]), title('Image Labeled by Cluster Index');
+
+%% Create Images that Segment the H&E Image by Color.
+% Using pixel_labels, separate objects in input figure by color, which will
+% result in three images.
+
+segmented_images = cell(1,3);
+rgb_label = repmat(pixel_labels,[1 1 3]);
+
+for k = 1:nColors
+    color = he;
+    color(rgb_label ~= k) = 0;
+    segmented_images{k} = color;
+end
+
+%% Segment the High Amplitude Regions (red) into a Separate Image
+% Separate dark red from light red using the 'L*' layer in the L*a*b* color 
+% space. The 'L*' layer contains the brightness values of each color. 
+% Find the cluster that contains the red objects. Extract the brightness 
+% values of the pixels in this cluster and threshold them using im2bw.
+% Then, use the mask is_light_red to label which pixels belong to the red 
+% amplitudes. Finally, display red amplitudes in a separate image.
+
+mean_cluster_value = mean(cluster_center,2);
+[tmp, idx] = sort(mean_cluster_value);
+red_cluster_num = idx(3);
+
+L = lab_he(:,:,1);
+red_idx = find(pixel_labels == red_cluster_num);
+L_red = L(red_idx);
+is_light_red = im2bw(L_red,graythresh(L_red));
+
+
+noisy_labels = repmat(uint8(0),[nrows ncols]);
+noisy_labels(red_idx(is_light_red==false)) = 1;
+noisy_labels = repmat(noisy_labels,[1 1 3]);
+red_noisy = he;
+red_noisy(noisy_labels ~= 1) = 0;
+figure
+imshow(red_noisy), title('Red Noisy Parts of Spectrogram');
+##### SOURCE END #####
+--></body></html>
